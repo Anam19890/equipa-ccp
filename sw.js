@@ -1,4 +1,4 @@
-const CACHE = "equipa-ccp-202610251515";
+const CACHE = "equipa-ccp-202610251529";
 const FICHEIROS = ["./", "index.html", "estilos.css", "app.bundle.js", "motor-ia.worker.js", "pdf.worker.min.mjs", "manifest.webmanifest", "icone-192.png", "icone-512.png",
   "fonts/literata-latin-400-italic.woff2",
   "fonts/literata-latin-400-normal.woff2",
