@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; frame-src 'self' blob: data:; connect-src 'self' https://huggingface.co https://*.huggingface.co https://*.hf.co https://raw.githubusercontent.com">
+<meta name="description" content="Departamento de contratação pública em agentes de IA, a funcionar no próprio computador.">
+<meta name="theme-color" content="#232323">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icone-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>A Equipa que Faltava</title>
+<link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+
+<header class="topo">
+  <div class="marca">
+    <svg class="marca-selo" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="21" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="24" cy="24" r="16" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="2 3"/><text x="24" y="29.5" text-anchor="middle" font-family="Literata" font-weight="700" font-size="15" fill="currentColor">CCP</text></svg>
+    <div>
+      <h1>A Equipa que Faltava</h1>
+      <p class="sub">Departamento de contratação pública em agentes de IA, de acordo com o CCP revisto pelo Decreto-Lei n.º 177/2026</p>
+    </div>
+  </div>
+  <nav class="separadores" role="tablist">
+    <button role="tab" class="sep ativo" data-vista="processo" aria-selected="true">Processo</button>
+    <button role="tab" class="sep" data-vista="instrucoes" aria-selected="false">Instruções</button>
+    <button role="tab" class="sep" data-vista="novidades" aria-selected="false">Novidades do CCP</button>
+    <button role="tab" class="sep" data-vista="sobre" aria-selected="false">Privacidade e modelo</button>
+  </nav>
+  <button class="botao instalar" id="instalarApp" hidden>Instalar app</button>
+  <div class="estado-modelo" id="estadoModelo" title="Estado do modelo de IA local"><span class="ponto"></span><span id="estadoModeloTexto">A preparar</span></div>
+</header>
+
+<main>
+  <!-- VISTA PROCESSO -->
+  <section class="vista ativa" id="vista-processo">
+    <aside class="coluna equipa" aria-label="Agentes">
+      <h2>A equipa</h2>
+      <p class="ajuda">Escolha um agente ou ligue vários. Trabalham pela ordem do ciclo do contrato e cada um lê o trabalho dos anteriores.</p>
+      <ul class="lista-agentes" id="listaAgentes"></ul>
+      <h3>Equipas formadas</h3>
+      <div class="equipas" id="listaEquipas"></div>
+    </aside>
+
+    <section class="coluna caso" aria-label="Ficha do caso">
+      <h2>Ficha do caso</h2>
+      <form id="fichaCaso" autocomplete="off">
+        <label class="campo">Tipo de contrato
+          <select name="tipo">
+            <option value="">Escolher</option>
+            <option value="empreitada">Empreitada de obras públicas</option>
+            <option value="bens_servicos">Bens móveis ou serviços</option>
+            <option value="outros">Outros contratos</option>
+          </select>
+        </label>
+        <label class="campo">Entidade adjudicante
+          <select name="entidade">
+            <option value="subcentral">Autarquia, instituto público ou outra entidade não central</option>
+            <option value="central">Administração central do Estado</option>
+            <option value="especiais">Setores especiais</option>
+          </select>
+        </label>
+        <div class="linha2">
+          <label class="campo">Valor estimado, sem IVA (€)
+            <input name="valor" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ex.: 98000">
+          </label>
+          <label class="campo">Data da decisão de contratar
+            <input name="dataDecisao" type="date">
+          </label>
+        </div>
+        <label class="campo">Matéria da consulta prévia especial
+          <select name="materiaCPE" id="materiaCPE"><option value="">Nenhuma das matérias especiais</option></select>
+        </label>
+        <label class="caixa"><input type="checkbox" name="servicosSociais"> Serviços sociais e outros serviços específicos</label>
+
+        <details class="mais">
+          <summary>Convites anteriores e execução do contrato</summary>
+          <label class="campo">Já adjudicado à entidade a convidar, nos últimos três anos económicos, por ajuste direto ou consulta prévia (€)
+            <input name="acumulado" type="number" min="0" step="0.01" placeholder="Deixe em branco se não se aplicar">
+          </label>
+          <div class="linha2">
+            <label class="campo">Preço contratual inicial (€)
+              <input name="precoInicial" type="number" min="0" step="0.01">
+            </label>
+            <label class="campo">Modificações acumuladas (€)
+              <input name="modificacoes" type="number" min="0" step="0.01">
+            </label>
+          </div>
+          <label class="campo">Trabalhos, serviços ou bens complementares (€)
+            <input name="complementares" type="number" min="0" step="0.01">
+          </label>
+        </details>
+
+        <label class="campo">Descrição do caso e o que pretende da equipa
+          <textarea name="descricao" rows="7" placeholder="Ex.: O Município pretende adquirir serviços de manutenção de espaços verdes por 24 meses. Preciso de saber que procedimento adotar, se posso convidar a empresa que já presta o serviço e de uma minuta da fundamentação."></textarea>
+        </label>
+
+        <div class="documentos">
+          <button type="button" class="botao secundario" id="juntarDocs">Juntar documentos</button>
+          <span class="ajuda">PDF, Word ou texto. São lidos no computador e nunca são gravados.</span>
+          <ul id="listaDocs"></ul>
+        </div>
+      </form>
+
+      <div class="motor" id="motor" aria-live="polite"></div>
+
+      <div class="acao">
+        <button class="botao principal" id="reunir" disabled>Reunir a equipa</button>
+        <button class="botao secundario" id="novaSessao" type="button">Nova sessão</button>
+      </div>
+      <p class="ajuda nota-tempo">A equipa trabalha no seu computador. Sem placa gráfica, cada agente demora, em regra, entre um e três minutos; num Mac com processador Apple, poucos segundos.</p>
+    </section>
+
+    <section class="coluna resultado" aria-label="Trabalho da equipa">
+      <div class="resultado-topo">
+        <h2>Trabalho da equipa</h2>
+        <div class="exportar" id="exportar" hidden>
+          <button class="botao secundario" id="copiar">Copiar</button>
+          <button class="botao secundario" id="exportWord">Guardar em Word</button>
+          <button class="botao secundario" id="exportPdf">Guardar em PDF</button>
+        </div>
+      </div>
+      <div class="lombada" id="lombada" aria-hidden="true"></div>
+      <div id="saida" class="saida">
+        <div class="vazio">
+          <p>Preencha a ficha, descreva o caso e reúna a equipa.</p>
+          <p class="ajuda">O motor de regras verifica primeiro os limiares, os prazos de aplicação da lei e os limites de convites. Depois, cada agente redige a sua parte e o revisor fecha o processo.</p>
+        </div>
+      </div>
+      <button class="botao parar" id="parar" hidden>Parar a equipa</button>
+    </section>
+  </section>
+
+  <!-- VISTA INSTRUÇÕES -->
+  <section class="vista" id="vista-instrucoes">
+    <div class="leitura instrucoes">
+      <h2>Como trabalhar com a equipa</h2>
+      <p class="lead">A app reúne oito agentes de IA especializados no Código dos Contratos Públicos, na redacção do Decreto-Lei n.º 177/2026. Pode pôr um agente a trabalhar sozinho ou ligar vários, que actuam em sequência sobre o mesmo processo. Antes de qualquer agente, um motor de regras sem IA verifica os limiares, o regime aplicável no tempo e os limites legais, e esses resultados são vinculativos para toda a equipa.</p>
+
+      <h3>Instalar a app</h3>
+      <p>Abra o endereço da app no Google Chrome ou no Microsoft Edge e carregue em «Instalar app», no topo da janela, ou no ícone de instalação da barra de endereço. A app fica com ícone próprio no ambiente de trabalho e no menu Iniciar ou na pasta Aplicações, e abre numa janela própria, como qualquer outra app.</p>
+
+      <h3>Primeira utilização</h3>
+      <p>Na primeira abertura, a app descarrega o modelo de IA que fica a funcionar no seu computador. Escolha o modelo assinalado como recomendado: foi escolhido em função da memória e da placa gráfica do computador. A descarga faz-se uma única vez e demora alguns minutos. A partir daí, a app funciona sem internet.</p>
+
+      <h3>Passo a passo</h3>
+      <ol class="passos">
+        <li><strong>Escolha os agentes.</strong> No painel «A equipa», assinale um ou mais agentes, ou carregue numa das «Equipas formadas» para seleccionar de uma vez um conjunto pensado para uma fase do procedimento. A ordem de trabalho é sempre a do ciclo do contrato, independentemente da ordem em que os escolhe.</li>
+        <li><strong>Preencha a ficha do caso.</strong> Quanto mais completa, mais rigoroso é o trabalho:
+          <ul>
+            <li><em>Tipo de contrato</em> e <em>valor estimado, sem IVA</em>: determinam os procedimentos admissíveis pelos artigos 19.º a 21.º.</li>
+            <li><em>Entidade adjudicante</em>: determina o limiar europeu aplicável (artigo 474.º).</li>
+            <li><em>Data da decisão de contratar</em>: determina se se aplica o CCP revisto ou a redacção anterior a 1 de Outubro de 2026.</li>
+            <li><em>Matéria da consulta prévia especial</em>: só se o objecto couber numa das matérias do artigo 127.º-B.</li>
+            <li><em>Convites anteriores e execução do contrato</em>: indique o valor já adjudicado à entidade a convidar nos últimos três anos económicos, para a verificação do artigo 113.º, n.º 2, e, em contratos em execução, o preço inicial, as modificações e os complementares, para a verificação do artigo 312.º.</li>
+          </ul>
+        </li>
+        <li><strong>Confira o motor de regras.</strong> O quadro «Motor de regras» actualiza-se enquanto escreve. Confirme os procedimentos admissíveis e os alertas antes de reunir a equipa.</li>
+        <li><strong>Descreva o caso e o que pretende.</strong> Indique os factos relevantes e o resultado que espera, por exemplo: «preciso de uma minuta da fundamentação da escolha do procedimento» ou «revejam as causas de exclusão das três propostas juntas».</li>
+        <li><strong>Junte documentos, se os tiver.</strong> Caderno de encargos, propostas, relatórios ou contratos, em PDF, Word ou texto. São lidos no computador e nunca são gravados. Os PDF digitalizados sem texto não podem ser lidos.</li>
+        <li><strong>Reúna a equipa.</strong> Cada agente redige a sua parte e lê o trabalho dos anteriores. Os carimbos à esquerda mostram quem já concluiu e quem está a trabalhar. Com três ou mais agentes, a equipa termina com um parecer integrado. Pode parar a equipa a qualquer momento.</li>
+        <li><strong>Guarde ou copie o resultado.</strong> Use «Guardar em Word» ou «Guardar em PDF». Só fica gravado o que decidir guardar.</li>
+        <li><strong>Comece uma nova sessão.</strong> «Nova sessão» apaga a ficha, os documentos e as respostas da memória. O mesmo sucede ao fechar a app.</li>
+      </ol>
+
+      <h3>Que agente usar em cada momento</h3>
+      <table class="tabela-uso">
+        <thead><tr><th scope="col">Precisa de</th><th scope="col">Agente ou equipa</th></tr></thead>
+        <tbody>
+          <tr><td>Fundamentar a necessidade, calcular o valor estimado, decidir sobre o preço base ou os lotes</td><td>Planeamento e Valor Estimado</td></tr>
+          <tr><td>Escolher o procedimento e verificar quem pode ser convidado</td><td>Escolha do Procedimento, ou a equipa «Escolha segura»</td></tr>
+          <tr><td>Redigir o convite, o programa do procedimento, o caderno de encargos e o modelo de avaliação</td><td>Redactor das Peças, ou a equipa «Preparar o procedimento»</td></tr>
+          <tr><td>Responder a esclarecimentos, analisar e excluir propostas, preparar relatórios</td><td>Júri, ou a equipa «Sala do Júri»</td></tr>
+          <tr><td>Tratar da habilitação, da caução, da minuta do contrato e do portal BASE</td><td>Habilitação e Contrato</td></tr>
+          <tr><td>Enquadrar modificações, trabalhos complementares, subcontratação ou sanções</td><td>Gestor da Execução, ou a equipa «Contrato em execução»</td></tr>
+          <tr><td>Responder a reclamações e recursos ou avaliar o risco de contencioso</td><td>Impugnações e Litígios</td></tr>
+          <tr><td>Rever todo o processo antes de decidir</td><td>Revisor do Tribunal de Contas, ou a equipa «Auditoria completa»</td></tr>
+          <tr><td>Tratar um procedimento do princípio ao fim</td><td>As equipas «Do zero ao contrato» ou «Departamento inteiro»</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Boas práticas</h3>
+      <ul class="lista-simples">
+        <li>Seja concreto no pedido: um agente com uma tarefa precisa responde melhor do que com um pedido genérico.</li>
+        <li>Inclua o Revisor do Tribunal de Contas sempre que o trabalho vá servir de base a uma decisão.</li>
+        <li>Para um caso longo, trabalhe por fases: primeiro «Preparar o procedimento», depois «Sala do Júri», depois «Contrato em execução».</li>
+        <li>Num computador sem placa gráfica, cada agente demora, em regra, entre um e três minutos. A equipa de oito agentes pode demorar cerca de vinte minutos.</li>
+      </ul>
+
+      <h3>Limites</h3>
+      <ul class="lista-simples">
+        <li>Os agentes preparam trabalho jurídico, mas não decidem. Cada texto deve ser validado por jurista e decidido pelo órgão competente, nos termos do princípio da supervisão humana do artigo 1.º-C do CCP.</li>
+        <li>Confirme sempre as normas citadas no Diário da República. Se um agente não tiver a certeza de um artigo, está instruído para o dizer, em vez de o inventar.</li>
+        <li>Os valores, limiares e percentagens do motor de regras são calculados sem IA e prevalecem sobre o texto dos agentes.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- VISTA NOVIDADES -->
+  <section class="vista" id="vista-novidades">
+    <div class="leitura">
+      <h2>O que mudou no Código dos Contratos Públicos</h2>
+      <p class="lead">O Decreto-Lei n.º 177/2026, de 4 de setembro, é a 17.ª alteração ao CCP e republica-o integralmente. Entrou em vigor a 1 de outubro de 2026 e aplica-se aos procedimentos iniciados a partir dessa data. A modificação dos contratos e a resolução alternativa de litígios aplicam-se também ao que já estava em curso.</p>
+      <table class="tabela-limiares">
+        <caption>Limiares em função do valor estimado do contrato, sem IVA</caption>
+        <thead><tr><th scope="col">Contrato</th><th scope="col">Ajuste direto</th><th scope="col">Consulta prévia</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Empreitadas de obras públicas <small>artigo 19.º</small></th><td><s>30 000 €</s> 150 000 €</td><td><s>150 000 €</s> 1 000 000 €</td></tr>
+          <tr><th scope="row">Bens móveis e serviços <small>artigo 20.º</small></th><td><s>20 000 €</s> 75 000 €</td><td><s>75 000 €</s> 130 000 €</td></tr>
+          <tr><th scope="row">Outros contratos <small>artigo 21.º</small></th><td><s>50 000 €</s> 75 000 €</td><td><s>100 000 €</s> 130 000 €</td></tr>
+        </tbody>
+      </table>
+      <p class="ajuda">Valores «inferiores a». O ajuste direto simplificado (artigo 128.º) mantém 5 000 € em bens e serviços e 10 000 € em empreitadas. Limiares europeus de 2026 e 2027: empreitadas 5 404 000 €; bens e serviços da administração central 140 000 €; entidades subcentrais 216 000 €.</p>
+      <div class="novidades" id="novidades"></div>
+      <p class="ajuda fonte" id="versaoBase"></p>
+    </div>
+  </section>
+
+  <!-- VISTA SOBRE -->
+  <section class="vista" id="vista-sobre">
+    <div class="leitura">
+      <h2>Privacidade e modelo de IA</h2>
+      <div class="garantias">
+        <div><h3>Tudo fica no seu computador</h3><p>O modelo de linguagem funciona no próprio computador. O que escreve e os documentos que junta não saem da máquina e não são enviados para nenhum serviço.</p></div>
+        <div><h3>Nada é guardado</h3><p>A app não guarda casos, documentos nem respostas. Ao fechar a janela ou ao iniciar uma nova sessão, tudo é apagado da memória. Só fica gravado o que decidir guardar em Word ou PDF.</p></div>
+        <div><h3>Funciona sem internet</h3><p>A internet só é necessária uma vez, para descarregar o modelo. A partir daí, a app funciona sem ligação.</p></div>
+        <div><h3>Supervisão humana</h3><p>Os agentes preparam trabalho jurídico, mas não decidem. Cada texto deve ser validado por quem tem competência para decidir, como exige o artigo 1.º-C do CCP.</p></div>
+      </div>
+      <h3>Modelos instalados</h3>
+      <div id="gestaoModelos" class="gestao-modelos"></div>
+      <p class="ajuda" id="infoSistema"></p>
+    </div>
+  </section>
+</main>
+
+<footer class="rodape">
+  <span>Ana Marta Soares, Especialista em IA aplicada ao Direito</span>
+</footer>
+
+<!-- BOAS-VINDAS E DESCARGA DO MODELO -->
+<div class="sobreposicao" id="boasVindas" hidden>
+  <div class="cartao-boas-vindas" role="dialog" aria-modal="true" aria-labelledby="bvTitulo">
+    <div class="bv-selo" aria-hidden="true">
+      <svg viewBox="0 0 120 120"><defs><path id="circ" d="M60,60 m-44,0 a44,44 0 1,1 88,0 a44,44 0 1,1 -88,0"/></defs><circle cx="60" cy="60" r="56" fill="currentColor"/><circle cx="60" cy="60" r="49" fill="none" stroke="#EFE9DE" stroke-width="1.2"/><text font-family="Public Sans" font-size="9.5" font-weight="600" fill="#EFE9DE" letter-spacing="1.6"><textPath href="#circ" startOffset="2%">OFERTA DE NATAL 2026 · CONTRATAÇÃO PÚBLICA ·</textPath></text><text x="60" y="68" text-anchor="middle" font-family="Literata" font-weight="700" font-size="26" fill="#EFE9DE">CCP</text></svg>
+    </div>
+    <h2 id="bvTitulo">Bem-vindo ao seu departamento de contratação pública</h2>
+    <p>Oito agentes especializados no CCP revisto, que trabalham sozinhos ou em equipa, no seu computador e sem guardar dados. Uma prenda de Natal de Ana Marta Soares.</p>
+    <p class="ajuda">Para começar, a app descarrega uma única vez o modelo de IA que fica a funcionar no seu computador. Recomendamos o modelo assinalado, escolhido em função deste computador.</p>
+    <div class="escolha-modelos" id="escolhaModelos"></div>
+    <div class="progresso" id="progresso" hidden>
+      <div class="barra"><span id="barra"></span></div>
+      <p id="progressoTexto">A iniciar a descarga</p>
+    </div>
+    <p class="erro" id="erroModelo" hidden></p>
+  </div>
+</div>
+
+<div class="sobreposicao" id="aCarregar" hidden>
+  <div class="cartao-carregar"><div class="girar" aria-hidden="true"></div><p id="aCarregarTexto">A preparar a equipa</p></div>
+</div>
+
+<script type="module" src="app.bundle.js"></script>
+</body>
+</html>
