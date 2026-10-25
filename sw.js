@@ -1,4 +1,4 @@
-const CACHE = "equipa-ccp-202610252050";
+const CACHE = "equipa-ccp-202610252052";
 const FICHEIROS = ["./", "index.html", "estilos.css", "app.bundle.js", "motor-ia.worker.js", "pdf.worker.min.mjs", "manifest.webmanifest", "icone-192.png", "icone-512.png",
   "fonts/literata-latin-400-italic.woff2",
   "fonts/literata-latin-400-normal.woff2",
@@ -14,5 +14,5 @@ self.addEventListener("activate", (e) => { e.waitUntil(caches.keys().then((ks) =
 self.addEventListener("fetch", (e) => {
   const u = new URL(e.request.url);
   if (u.origin !== location.origin || e.request.method !== "GET") return;
-  e.respondWith(fetch(e.request).then((r) => { const c = r.clone(); caches.open(CACHE).then((k) => k.put(e.request, c)); return r; }).catch(() => caches.match(e.request, { ignoreSearch: true })));
+  e.respondWith(fetch(e.request, { cache: "no-cache" }).then((r) => { const c = r.clone(); caches.open(CACHE).then((k) => k.put(e.request, c)); return r; }).catch(() => caches.match(e.request, { ignoreSearch: true })));
 });
