@@ -267,7 +267,9 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--v
 .rodape { display: flex; justify-content: center; padding: 7px 16px; font-size: 12px; color: var(--verde); border-top: 1px solid var(--linha); background: var(--folha); font-weight: 500; letter-spacing: .01em; }
 
 @media (max-width: 1240px) {
-  #vista-processo { grid-template-columns: 300px 1fr; grid-template-rows: auto; }
+  main { overflow-y: auto; }
+  .vista.ativa#vista-processo { height: auto; min-height: 100%; align-content: start; align-items: start; }
+  #vista-processo { grid-template-columns: 300px 1fr; grid-template-rows: auto auto; }
   .resultado { grid-column: 1 / -1; border-top: 1px solid var(--linha); }
   .vista.ativa#vista-processo { overflow-y: auto; }
   .coluna { overflow: visible; }
@@ -297,3 +299,6 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--v
 .inst-icone { width: 112px; height: 112px; display: block; margin: 0 auto 16px; }
 .botao.grande { font-size: 16px; padding: 14px 28px; margin: 18px 0 10px; width: 100%; }
 @media (display-mode: standalone) { #instalarApp { display: none !important; } }
+
+#instContinuar { margin-top: 12px; }
+.instalacao #instAviso { color: var(--tinta-2); }
