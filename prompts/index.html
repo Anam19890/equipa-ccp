@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Construtor de Prompts Jurídicos</title>
+<meta name="description" content="Ferramenta que monta prompts jurídicos estruturados, pronta a copiar. Por Ana Marta Soares, Especialista em IA aplicada ao Direito.">
+<link rel="icon" href="../icone-192.png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..600;1,9..144,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<style>
+  /* Layout: duas colunas em ecrã largo (formulário à esquerda, prompt montado à direita),
+     empilhadas em coluna no telemóvel. Paleta sóbria, registo jurídico, sem ornamento. */
+  :root {
+    --bg: #f4f2ee;
+    --surface: #ffffff;
+    --ink: #1c1a17;
+    --ink-soft: #595349;
+    --line: #ddd7cc;
+    --accent: #6b4f8a;
+    --accent-soft: #efe9f3;
+    --code-bg: #faf8f4;
+    --ok: #3a6b4f;
+    --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+    --font-body: "Inter", system-ui, -apple-system, sans-serif;
+    --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17151a;
+      --surface: #201d25;
+      --ink: #ece8f0;
+      --ink-soft: #a79fb3;
+      --line: #35303d;
+      --accent: #b79ad6;
+      --accent-soft: #2a2333;
+      --code-bg: #1a171f;
+      --ok: #7fc39d;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17151a;
+    --surface: #201d25;
+    --ink: #ece8f0;
+    --ink-soft: #a79fb3;
+    --line: #35303d;
+    --accent: #b79ad6;
+    --accent-soft: #2a2333;
+    --code-bg: #1a171f;
+    --ok: #7fc39d;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    line-height: 1.5;
+    margin: 0;
+  }
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 0;
+  }
+  header {
+    padding-block: 2.4rem 1.6rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .eyebrow {
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+    margin: 0 0 0.6rem;
+  }
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.8rem, 4.5vw, 2.7rem);
+    line-height: 1.08;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+    margin: 0 0 0.7rem;
+  }
+  .lede {
+    color: var(--ink-soft);
+    max-width: 60ch;
+    font-size: 1.02rem;
+    margin: 0;
+  }
+  main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    padding-block: 2rem 1rem;
+    align-items: start;
+  }
+  @media (max-width: 820px) {
+    main { grid-template-columns: 1fr; gap: 1.4rem; }
+  }
+  .panel { min-width: 0; }
+  .field { margin-bottom: 1.5rem; }
+  .field > label.q {
+    display: block;
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 0.1rem;
+  }
+  .field .hint {
+    display: block;
+    color: var(--ink-soft);
+    font-size: 0.82rem;
+    margin-bottom: 0.6rem;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .chip {
+    font-family: inherit;
+    font-size: 0.86rem;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0.42rem 0.85rem;
+    cursor: pointer;
+    transition: border-color .12s, background .12s, color .12s;
+  }
+  .chip:hover { border-color: var(--accent); }
+  .chip[aria-pressed="true"] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  :root[data-theme="dark"] .chip[aria-pressed="true"],
+  @media (prefers-color-scheme: dark) { }
+  input[type="text"], textarea, select {
+    width: 100%;
+    font-family: inherit;
+    font-size: 0.95rem;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 0.6rem 0.7rem;
+    resize: vertical;
+  }
+  textarea { min-height: 4.5rem; line-height: 1.45; }
+  input:focus, textarea:focus, select:focus, .chip:focus-visible, button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  .toggle-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.55rem 0;
+    border-top: 1px solid var(--line);
+  }
+  .toggle-row:first-of-type { border-top: none; }
+  .toggle-row input { width: 1.05rem; height: 1.05rem; margin-top: 0.18rem; accent-color: var(--accent); flex: none; }
+  .toggle-row .tlabel { font-size: 0.9rem; }
+  .toggle-row .tlabel small { display: block; color: var(--ink-soft); font-size: 0.78rem; }
+  /* Coluna do resultado */
+  .result {
+    position: sticky;
+    top: calc(1rem + env(safe-area-inset-top, 0px));
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  @media (max-width: 820px) { .result { position: static; } }
+  .result-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .result-head h2 {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin: 0;
+  }
+  .copybtn {
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #fff;
+    background: var(--accent);
+    border: none;
+    border-radius: 7px;
+    padding: 0.5rem 0.95rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .copybtn.done { background: var(--ok); }
+  pre.out {
+    margin: 0;
+    padding: 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    color: var(--ink);
+    background: var(--code-bg);
+    max-height: 60vh;
+    overflow-y: auto;
+    min-width: 0;
+  }
+  footer {
+    border-top: 1px solid var(--line);
+    padding-block: 1.4rem 2.2rem;
+    color: var(--ink-soft);
+    font-size: 0.82rem;
+    text-align: center;
+  }
+  footer strong { color: var(--ink); font-weight: 600; }
+  .seal {
+    font-family: var(--font-display);
+    font-style: italic;
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Do Pedido ao Resultado</p>
+    <h1>Construtor de Prompts Jurídicos</h1>
+    <p class="lede">Escolha a tarefa, defina o papel, preencha o essencial. A instrução monta-se ao lado, estruturada nos cinco elementos de um bom prompt, pronta a copiar para o ChatGPT, o Claude, o Gemini ou o Copilot.</p>
+  </header>
+
+  <main>
+    <div class="panel">
+      <div class="field">
+        <label class="q">1. Que tarefa quer pedir?</label>
+        <span class="hint">O verbo da tarefa e a estrutura mudam conforme a escolha.</span>
+        <div class="chips" id="tarefas" role="group" aria-label="Tarefa"></div>
+      </div>
+
+      <div class="field">
+        <label class="q" for="area">2. Qual a sua área e o papel do modelo?</label>
+        <span class="hint">Escolha uma área ou escreva a sua.</span>
+        <div class="chips" id="areas" role="group" aria-label="Área" style="margin-bottom:.6rem"></div>
+        <input type="text" id="area" placeholder="Área de prática (ex.: direito do trabalho)">
+      </div>
+
+      <div class="field">
+        <label class="q" for="parte">3. Quem representa?</label>
+        <span class="hint">Define o lado de que o modelo deve olhar para os factos.</span>
+        <div class="chips" id="partes" role="group" aria-label="Parte" style="margin-bottom:.6rem"></div>
+        <input type="text" id="parte" placeholder="A parte que representa (ex.: o trabalhador)">
+      </div>
+
+      <div class="field">
+        <label class="q" for="dest">4. Para quem é o resultado?</label>
+        <div class="chips" id="dests" role="group" aria-label="Destinatário" style="margin-bottom:.6rem"></div>
+        <input type="text" id="dest" placeholder="Destinatário (ex.: nota interna para o sócio)">
+      </div>
+
+      <div class="field">
+        <label class="q" for="material">5. O essencial do caso</label>
+        <span class="hint">Em duas linhas, o que o modelo precisa de saber. Não escreva nomes nem dados de clientes: use expressões genéricas.</span>
+        <textarea id="material" placeholder="Ex.: cláusula de não concorrência de cinco anos, sem compensação, num contrato de trabalho já cessado."></textarea>
+      </div>
+
+      <div class="field">
+        <label class="q">Reforços opcionais</label>
+        <div class="toggle-row">
+          <input type="checkbox" id="opt-passos" checked>
+          <label for="opt-passos" class="tlabel">Raciocínio passo a passo<small>Obriga o modelo a fundamentar antes de concluir.</small></label>
+        </div>
+        <div class="toggle-row">
+          <input type="checkbox" id="opt-naoconsta" checked>
+          <label for="opt-naoconsta" class="tlabel">Travão às invenções<small>Manda escrever "NÃO CONSTA" em vez de deduzir, e não citar jurisprudência inventada.</small></label>
+        </div>
+        <div class="toggle-row">
+          <input type="checkbox" id="opt-contraparte">
+          <label for="opt-contraparte" class="tlabel">Pedir a visão da contraparte<small>Acrescenta um segundo pedido: o modelo ataca a própria análise.</small></label>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="result">
+        <div class="result-head">
+          <h2>O seu prompt</h2>
+          <button class="copybtn" id="copy" type="button">Copiar</button>
+        </div>
+        <pre class="out" id="out" aria-live="polite"></pre>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p class="seal"><strong>Ana Marta Soares</strong>, Especialista em IA aplicada ao Direito</p>
+    <p>Ferramenta de apoio à formação. Confirme sempre em fonte primária antes de usar o resultado numa peça.</p>
+  </footer>
+</div>
+
+<script>
+  var TAREFAS = {
+    analisar: {
+      rotulo: "Analisar um documento",
+      verbo: "Identifica os pontos relevantes e os riscos do documento abaixo",
+      formato: "Tabela com as colunas: Ponto | Em que consiste | Risco (Alto/Médio/Baixo) | Fundamento.\nNo fim, uma secção \"TRÊS PONTOS A LEVANTAR\" com uma frase cada.",
+      objecto: "o documento"
+    },
+    clausula: {
+      rotulo: "Avaliar uma cláusula",
+      verbo: "Identifica cada requisito de validade que a cláusula abaixo possa violar",
+      formato: "Tabela com as colunas: Requisito legal | Em que consiste o vício | Consequência jurídica.\nNo fim, uma secção \"POSIÇÃO A ASSUMIR\" em não mais de 80 palavras.",
+      objecto: "a cláusula"
+    },
+    cronologia: {
+      rotulo: "Construir uma cronologia",
+      verbo: "Constrói uma cronologia dos factos a partir dos elementos abaixo",
+      formato: "Tabela com as colunas: Data | Facto | Fonte | Prova existente? (Sim/Não/A obter) | Relevância.\nDepois, três secções: \"LACUNAS\", \"CONTRADIÇÕES\" e \"DOCUMENTOS A SOLICITAR\".",
+      objecto: "os factos"
+    },
+    inquiricao: {
+      rotulo: "Preparar uma inquirição",
+      verbo: "Prepara a inquirição da testemunha a partir dos factos abaixo",
+      formato: "1. Os factos a obter da testemunha.\n2. Para cada facto, perguntas fechadas e numeradas, de resposta sim/não.\n3. \"PERGUNTAS A EVITAR\".\nRestrição adicional: nunca uma pergunta cuja resposta eu não conheça de antemão.",
+      objecto: "os factos"
+    },
+    prognostico: {
+      rotulo: "Prever a decisão",
+      verbo: "Faz o prognóstico de como um tribunal decidiria o caso abaixo",
+      formato: "Separa os factos em: Favorecem uma parte | Favorecem a outra | Por provar.\nIndica o critério aplicável, pesa os factos e termina com o sentido provável da decisão e uma estimativa de probabilidade.\nNo fim, \"O FACTO QUE DECIDE O CASO\".",
+      objecto: "o caso"
+    },
+    cliente: {
+      rotulo: "Explicar ao cliente",
+      verbo: "Explica a situação abaixo a um cliente sem formação jurídica",
+      formato: "Frases curtas. Sem citar artigos. Começa pela resposta directa à pergunta prática do cliente e só depois explica. Máximo 150 palavras. Termina com uma acção concreta a tomar.",
+      objecto: "a situação"
+    },
+    minuta: {
+      rotulo: "Redigir uma minuta",
+      verbo: "Redige a minuta correspondente à situação abaixo",
+      formato: "Minuta completa, com os factos numerados e os campos de preenchimento assinalados entre [PARÊNTESES RECTOS].",
+      objecto: "a situação"
+    }
+  };
+
+  var AREAS = ["direito do trabalho","direito comercial","direito civil","família e sucessões","contratação pública","direito administrativo","protecção de dados"];
+  var PARTES = ["o trabalhador","a empresa","o autor","o réu","o consumidor","nenhuma (análise neutra)"];
+  var DESTS = ["nota interna para o sócio","uma peça processual","o cliente","uma reunião de negociação"];
+
+  var estado = { tarefa: "clausula", area: "", parte: "", dest: "" };
+
+  function montarChips(containerId, valores, campo, inputId) {
+    var c = document.getElementById(containerId);
+    valores.forEach(function (v) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "chip";
+      b.textContent = (campo === "tarefa") ? TAREFAS[v].rotulo : v;
+      b.setAttribute("aria-pressed", "false");
+      b.addEventListener("click", function () {
+        if (campo === "tarefa") {
+          estado.tarefa = v;
+          marcarUnico(c, b);
+        } else {
+          var inp = document.getElementById(inputId);
+          var jaActivo = b.getAttribute("aria-pressed") === "true";
+          marcarUnico(c, jaActivo ? null : b);
+          inp.value = (jaActivo || v.indexOf("nenhuma") === 0) ? (v.indexOf("nenhuma") === 0 && !jaActivo ? "" : "") : v;
+          if (v.indexOf("nenhuma") === 0 && !jaActivo) inp.value = "";
+        }
+        render();
+      });
+      c.appendChild(b);
+    });
+  }
+  function marcarUnico(container, botao) {
+    container.querySelectorAll(".chip").forEach(function (x) { x.setAttribute("aria-pressed", "false"); });
+    if (botao) botao.setAttribute("aria-pressed", "true");
+  }
+
+  function val(id) { return document.getElementById(id).value.trim(); }
+
+  function render() {
+    var t = TAREFAS[estado.tarefa];
+    var area = val("area") || "[área de prática]";
+    var parte = val("parte");
+    var dest = val("dest") || "[destinatário]";
+    var material = val("material") || "[colar aqui o documento, a cláusula ou os factos]";
+    var representa = (parte && parte.indexOf("nenhuma") !== 0) ? parte : "";
+
+    var L = [];
+    L.push("Actua como advogado especialista em " + area + ", no ordenamento jurídico português.");
+    if (representa) L.push("Represento " + representa + ".");
+    L.push("");
+    L.push("TAREFA: " + t.verbo + ", com base exclusivamente no material fornecido.");
+    L.push("");
+
+    if (document.getElementById("opt-passos").checked) {
+      L.push("RACIOCÍNIO: antes de concluíres, raciocina em passos numerados. Decompõe " + t.objecto + " nos seus elementos, confronta cada um com o que a lei exige e só no fim apresenta a conclusão. Não antecipes a conclusão.");
+      L.push("");
+    }
+
+    L.push("FORMATO:");
+    L.push(t.formato);
+    L.push("");
+
+    var restr = [];
+    restr.push("Baseia-te exclusivamente no material fornecido.");
+    if (document.getElementById("opt-naoconsta").checked) {
+      restr.push("Se a informação não constar, escreve \"NÃO CONSTA\" e indica o que seria necessário. É proibido deduzir ou presumir.");
+      restr.push("Não cites jurisprudência. Se precisares dela, indica apenas a questão a pesquisar, sem inventar referências.");
+    }
+    restr.push("Não faças cálculos. Se houver contas, escreve a fórmula.");
+    L.push("RESTRIÇÕES:");
+    restr.forEach(function (r) { L.push("- " + r); });
+    L.push("");
+
+    L.push("TOM: destino a " + dest + ". Sem preâmbulos e sem adjectivação.");
+    L.push("");
+    L.push("MATERIAL:");
+    L.push("---");
+    L.push(material);
+    L.push("---");
+
+    if (document.getElementById("opt-contraparte").checked) {
+      L.push("");
+      L.push("Depois da resposta, muda de lado: passa a ser o advogado da parte contrária e apresenta os três argumentos que mais abalam a análise anterior. No fim, diz o que eu deveria reforçar antes de a usar.");
+    }
+
+    document.getElementById("out").textContent = L.join("\n");
+  }
+
+  montarChips("tarefas", Object.keys(TAREFAS), "tarefa");
+  montarChips("areas", AREAS, "area", "area");
+  montarChips("partes", PARTES, "parte", "parte");
+  montarChips("dests", DESTS, "dest", "dest");
+
+  // pré-selecção inicial
+  document.querySelectorAll("#tarefas .chip").forEach(function (b) {
+    if (b.textContent === TAREFAS.clausula.rotulo) b.setAttribute("aria-pressed", "true");
+  });
+
+  ["area","parte","dest","material"].forEach(function (id) {
+    document.getElementById(id).addEventListener("input", render);
+  });
+  ["opt-passos","opt-naoconsta","opt-contraparte"].forEach(function (id) {
+    document.getElementById(id).addEventListener("change", render);
+  });
+
+  document.getElementById("copy").addEventListener("click", function () {
+    var btn = this;
+    var texto = document.getElementById("out").textContent;
+    function sucesso() {
+      btn.textContent = "Copiado";
+      btn.classList.add("done");
+      setTimeout(function () { btn.textContent = "Copiar"; btn.classList.remove("done"); }, 1800);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(texto).then(sucesso).catch(seleccionar);
+    } else { seleccionar(); }
+    function seleccionar() {
+      var r = document.createRange();
+      r.selectNodeContents(document.getElementById("out"));
+      var s = window.getSelection();
+      s.removeAllRanges(); s.addRange(r);
+      sucesso();
+    }
+  });
+
+  render();
+</script>
+
+</body>
+</html>
